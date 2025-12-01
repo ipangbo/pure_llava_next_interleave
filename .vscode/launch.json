@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "DBG ITLV_VQA",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "eval.interleave_vqa",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "CUDA_VISIBLE_DEVICES": "0"
+      },
+      "args": [
+        "--model-path", "llava-qwen-7b-dpo",
+        "--image-folder", "data/interleave_data",
+        "--question-file", "data/interleave_data/multi_image_in_domain.json",
+        "--answers-file", "logs/demo_result.jsonl",
+        "--extra-prompt", "",
+        "--temperature", "0",
+        "--device-map", "cuda"
+      ]
+    }
+  ]
+}

@@ -218,7 +218,7 @@ __marimo__/
 data/
 llava-qwen-7b-dpo/
 logs/
-.vscode/
+
 .idea/
 .cache/
 .checkpoints/
@@ -237,3 +237,6 @@ temp/
 *.parquet
 *.onnx
 *.safetensors
+
+.vscode/*
+!.vscode/launch.json

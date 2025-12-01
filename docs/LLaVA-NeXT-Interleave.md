@@ -392,7 +392,7 @@
 直接使用 Python 入口：
 
 ```bash
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 python -m eval.interleave_vqa \
   --model-path llava-qwen-7b-dpo \

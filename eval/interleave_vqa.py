@@ -7,11 +7,11 @@ from typing import Dict
 import shortuuid
 import torch
 import transformers
-from PIL import Image
 from tqdm import tqdm
 
 from constants import DEFAULT_IMAGE_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN, IGNORE_INDEX, IMAGE_TOKEN_INDEX
 from conversation import SeparatorStyle, conv_templates
+from dataset import LLavaInterleaveDataset
 from mm_utils import KeywordsStoppingCriteria, get_model_name_from_path
 from model.builder import load_pretrained_model
 from utils import disable_torch_init
@@ -116,21 +116,27 @@ def eval_model(args):
     model_dtype = next(model.parameters()).dtype
 
     # Data
-    with open(os.path.expanduser(args.question_file)) as f:
-        questions = json.load(f)
+    dataset = LLavaInterleaveDataset(
+        question_file=args.question_file,
+        image_folder=args.image_folder,
+        image_processor=image_processor,
+        device=device,
+        model_dtype=model_dtype,
+        extra_prompt=args.extra_prompt,
+    )
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
-    
-    for line in tqdm(questions):
-        idx = line["sample_id"]
-        question_type = line["metadata"]["question_type"]
-        dataset_name = line["metadata"]["dataset"]
-        gt = line["conversations"][1]["value"]
 
-        image_files = line["image"]
-        qs = line["conversations"][0]["value"]
-        cur_prompt = args.extra_prompt + qs
+    for sample in tqdm(dataset):
+        idx = sample["sample_id"]
+        question_type = sample["question_type"]
+        dataset_name = sample["dataset_name"]
+        gt = sample["gt_response"]
+        conversations = sample["conversations"]
+        qs = conversations[0]["value"]
+        cur_prompt = sample["prompt"]
+        image_tensors = sample["image_tensors"]
 
         conv_mode = "qwen_1_5"
 
@@ -139,14 +145,8 @@ def eval_model(args):
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
-        input_ids = preprocess_qwen([line["conversations"][0], {'from': 'gpt', 'value': None}], tokenizer, has_image=True).to(device)
+        input_ids = preprocess_qwen([conversations[0], {'from': 'gpt', 'value': None}], tokenizer, has_image=True).to(device)
         img_num = list(input_ids.squeeze()).count(IMAGE_TOKEN_INDEX)
-
-        image_tensors = []
-        for image_file in image_files:
-            image = Image.open(os.path.join(args.image_folder, image_file)).convert("RGB")
-            image_tensor = image_processor.preprocess(image, return_tensors="pt")["pixel_values"]
-            image_tensors.append(image_tensor.to(device=device, dtype=model_dtype))
 
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         keywords = [stop_str]
@@ -178,13 +178,13 @@ def eval_model(args):
                                    }) + "\n")
         ans_file.flush()
 
-        if len(line["conversations"]) > 2:
+        if len(conversations) > 2:
 
-            for i in range(2, len(line["conversations"]), 2):
+            for i in range(2, len(conversations), 2):
                 input_ids = torch.cat((input_ids, output_ids), dim=1)
 
-                gt = line["conversations"][i + 1]["value"]
-                qs = line["conversations"][i]["value"]
+                gt = conversations[i + 1]["value"]
+                qs = conversations[i]["value"]
                 cur_prompt = args.extra_prompt + qs
 
                 conv_mode = "qwen_1_5"
@@ -194,7 +194,7 @@ def eval_model(args):
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
 
-                input_ids_new = preprocess_qwen([line["conversations"][i], {'from': 'gpt', 'value': None}], tokenizer, has_image=True).to(device)
+                input_ids_new = preprocess_qwen([conversations[i], {'from': 'gpt', 'value': None}], tokenizer, has_image=True).to(device)
                 input_ids = torch.cat((input_ids, input_ids_new), dim=1)
 
                 stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
