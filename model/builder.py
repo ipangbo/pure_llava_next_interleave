@@ -119,8 +119,8 @@ def load_pretrained_model(
     image_processor = vision_tower.image_processor
 
     # Debug: confirm vision tower is fully loaded
-    print("Vison Tower:\n" + vision_tower)
-    print("Vison Tower Params:\n" + sum(p.numel() for p in vision_tower.parameters()))
+    print("Vison Tower:\n", vision_tower)
+    print("Vison Tower Params:\n", sum(p.numel() for p in vision_tower.parameters()))
 
     if hasattr(model.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length

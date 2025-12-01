@@ -392,15 +392,16 @@
 直接使用 Python 入口：
 
 ```bash
+export CUDA_VISIBLE_DEVICES=0
+
 python -m eval.interleave_vqa \
   --model-path llava-qwen-7b-dpo \
   --image-folder data/interleave_data \
   --question-file data/interleave_data/multi_image_in_domain.json \
   --answers-file logs/demo_result.jsonl \
-  --device-map auto \
-  --attn-implementation sdpa \
+  --extra-prompt "" \
   --temperature 0 \
-  --num-beams 1
+  --device-map cuda
 ```
 
 常用参数说明：
