@@ -10,7 +10,7 @@
       "justMyCode": false,
       "env": {
         "PYTHONPATH": "${workspaceFolder}",
-        "CUDA_VISIBLE_DEVICES": "0"
+        "CUDA_VISIBLE_DEVICES": "3"
       },
       "args": [
         "--model-path", "llava-qwen-7b-dpo",
